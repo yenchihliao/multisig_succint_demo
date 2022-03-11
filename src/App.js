@@ -1,11 +1,13 @@
 import './App.css';
-import Sign from './Sign';
+import Mint from './Mint';
+import Transfer from './Transfer';
 // import Transfer from './Transfer';
 
 function App() {
   return (
     <div className="Multi-Signature Wallet">
-    <Sign/>
+    <Mint/>
+    <Transfer/>
     </div>
   );
 }
