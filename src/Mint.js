@@ -97,6 +97,7 @@ const Mint = ({ show }) => {
     } else {
       currentCount += 1;
     }
+    console.log(currentSigns);
 
     if (currentCount >= sigNeeded) {
       currentSigns.push(
@@ -108,7 +109,7 @@ const Mint = ({ show }) => {
       currentSigns.sort();
       var signatures = "0x";
       for(var i = 0;i < sigNeeded;i++){
-        signatures += window.hash2Signs[dataHash][i].substr(42);
+        signatures += currentSigns[i].substr(42);
       }
       // execTransaction
       const tx = await contract.execTransaction(
@@ -149,10 +150,10 @@ const Mint = ({ show }) => {
         flatSig = flatSig.slice(0, 130);
         flatSig += "20";
       }
-
+      currentSigns.push((await signer.getAddress()) + flatSig.substr(2))
       setHash2Signs({
         ...hash2Signs,
-        [dataHash]: (currentSigns.push((await signer.getAddress()) + flatSig.substr(2))),
+        [dataHash]: (currentSigns),
       });
 
       // 如果成功才更動資訊
