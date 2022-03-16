@@ -23,7 +23,8 @@ function App() {
           Transfer
         </div>
       </div>
-      {current ? <Mint /> : <Transfer />}
+      <Mint show={current} />
+      <Transfer show={current} />
     </div>
   );
 }

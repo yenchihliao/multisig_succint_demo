@@ -3,11 +3,11 @@ import Web3Modal from "web3modal";
 import { ethers } from "ethers";
 // import abi here
 import GnosisSafeL2Abi from "./abi/GnosisSafeL2.json";
-// import config from "./config.json";
 import config from "./config.json";
 import FirstPanel from "./FirstPanel";
 import LastPanel from "./LastPanel";
 import InfoPanel from "./InfoPanel";
+import PropTypes from "prop-types";
 
 const initial = async (setSigNeeded) => {
   const web3Modal = new Web3Modal();
@@ -24,34 +24,36 @@ const initial = async (setSigNeeded) => {
   setSigNeeded(threshold);
 };
 
-window.hash2Count = {};
-window.hash2Signs = {};
-const Mint = () => {
+const padTo32Bytes = (str) => {
+  var paddings = "";
+  var num = 64 - str.length;
+  for (var i = 0; i < num; i++) {
+    paddings += "0";
+  }
+  return paddings + str;
+};
+
+const Mint = ({ show }) => {
   const [submitSignButtonText, setSubmitSignButtonText] = useState("Creat");
-  const [count, setCount] = useState("0");
+  const [count, setCount] = useState(0);
   const [sigNeeded, setSigNeeded] = useState(0);
-  const [toInput, setToInput] = useState(
-    "0xC4c541a43D07245FbB933aE256D65BD9e9708143"
-  );
+  const [toInput, setToInput] = useState(config.tokenPool);
   const [amountInput, setAmountInput] = useState("1");
   const [complete, setComplete] = useState(false);
   const [record, setRecord] = useState([]);
+  const [hash2Count, setHash2Count] = useState({});
+  const [hash2Signs, setHash2Signs] = useState({});
 
-  // first get threshold
+  // initial get threshold
   useEffect(() => {
     initial(setSigNeeded);
   }, []);
 
-  function padTo32Bytes(str) {
-    var paddings = "";
-    var num = 64 - str.length;
-    for (var i = 0; i < num; i++) {
-      paddings += "0";
-    }
-    return paddings + str;
-  }
-
   const submitSignHandler = async () => {
+    // temp hash2Count, hash2Signs
+    let currentCount = 0;
+    let currentSigns = "";
+
     //get signer
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
@@ -63,8 +65,8 @@ const Mint = () => {
       GnosisSafeL2Abi["abi"],
       signer
     );
-    const threshold = parseInt((await contract.getThreshold())["_hex"], 16);
-    setSigNeeded(threshold);
+    // const threshold = parseInt((await contract.getThreshold())["_hex"], 16);
+    // setSigNeeded(threshold);
 
     // input
     const to = padTo32Bytes(toInput.slice(2));
@@ -89,20 +91,20 @@ const Mint = () => {
       nonce
     );
 
-    if (!(dataHash in window.hash2Count)) {
-      window.hash2Count[dataHash] = 0;
-      window.hash2Signs[dataHash] = "";
+    if (dataHash in hash2Count) {
+      currentCount = hash2Count[dataHash] + 1;
+      currentSigns = hash2Signs[dataHash];
+    } else {
+      currentCount += 1;
     }
-    window.hash2Count[dataHash] += 1;
 
-    // check if enough signs to execute
-    if (window.hash2Count[dataHash] >= threshold) {
-      console.log(
-        window.hash2Signs[dataHash] +
-          padTo32Bytes((await signer.getAddress()).substr(2)) +
-          padTo32Bytes("") +
-          "01"
-      );
+    if (currentCount >= sigNeeded) {
+      // console.log(
+      //   currentSigns +
+      //     padTo32Bytes((await signer.getAddress()).substr(2)) +
+      //     padTo32Bytes("") +
+      //     "01"
+      // );
       // execTransaction
       const tx = await contract.execTransaction(
         config.erc1363,
@@ -114,7 +116,7 @@ const Mint = () => {
         0,
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
-        window.hash2Signs[dataHash] +
+        currentSigns +
           padTo32Bytes((await signer.getAddress()).substr(2)) +
           padTo32Bytes("") +
           "01"
@@ -122,8 +124,15 @@ const Mint = () => {
 
       await tx.wait();
 
+      setHash2Count((old) => ({
+        ...old,
+        [dataHash]: currentCount,
+      }));
+
       let newSign = { address: await signer.getAddress(), msg: dataHash };
       setRecord((oldArray) => [...oldArray, newSign]);
+
+      setCount(currentCount);
       setSubmitSignButtonText("Executed");
       setComplete(true);
     } else {
@@ -138,13 +147,20 @@ const Mint = () => {
         flatSig = flatSig.slice(0, 130);
         flatSig += "20";
       }
-      window.hash2Signs[dataHash] += flatSig;
-      const recovered = ethers.utils.verifyMessage(dataHashBytes, flatSig);
-      console.log(recovered);
+
+      setHash2Signs({
+        ...hash2Signs,
+        [dataHash]: (currentSigns += flatSig),
+      });
 
       // 如果成功才更動資訊
       if (flatSig) {
-        setCount(window.hash2Count[dataHash]);
+        setHash2Count((old) => ({
+          ...old,
+          [dataHash]: currentCount,
+        }));
+
+        setCount(currentCount);
         let newSign = { address: await signer.getAddress(), msg: dataHash };
         setRecord((oldArray) => [...oldArray, newSign]);
       }
@@ -154,7 +170,7 @@ const Mint = () => {
   };
 
   return (
-    <div className="mint">
+    <div className={show ? "mint" : "mint hide"}>
       <div className="mint_section">
         <h3>Mint to TokenPool</h3>
         to:{" "}
@@ -179,6 +195,19 @@ const Mint = () => {
         <button onClick={submitSignHandler} disabled={complete}>
           {submitSignButtonText}
         </button>
+        {/* <div>
+        {" "}
+        <span className="outputs"> Account: {account}</span>{" "}
+      </div> */}
+        {/* <div>
+        <span className="outputs">
+          目前已有的授權: {count} out of {sigNeeded}
+        </span>
+      </div> */}
+        {/* <div>
+        {" "}
+        <span className="outputs"> Digest: {txHash} </span>{" "}
+      </div> */}
       </div>
       <div className="mint_section">
         <p>
@@ -186,11 +215,15 @@ const Mint = () => {
         </p>
         <div>
           <FirstPanel created={record.length > 0 ? true : false} />
-          <InfoPanel data={record} />
+          <InfoPanel data={record} completed={complete} />
+          {complete ? <LastPanel /> : <></>}
         </div>
       </div>
     </div>
   );
 };
 
+Mint.propTypes = {
+  show: PropTypes.bool,
+};
 export default Mint;
