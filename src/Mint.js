@@ -173,41 +173,31 @@ const Mint = ({ show }) => {
     <div className={show ? "mint" : "mint hide"}>
       <div className="mint_section">
         <h3>Mint to TokenPool</h3>
-        to:{" "}
-        <input
-          type="text"
-          id="to_mint"
-          placeholder="TokenPool的地址"
-          size="40"
-          value={toInput}
-          onChange={(e) => setToInput(e.target.value)}
-        ></input>
-        <br></br>
-        amount:{" "}
-        <input
-          type="text"
-          id="amount_mint"
-          placeholder="Mint的數量"
-          value={amountInput}
-          onChange={(e) => setAmountInput(e.target.value)}
-        ></input>
-        <br></br>
+        <div className="mint_section_data">
+          <span className="mint_section_data_title">to:</span>
+          <input
+            type="text"
+            id="to_mint"
+            placeholder="TokenPool的地址"
+            value={toInput}
+            onChange={(e) => setToInput(e.target.value)}
+            className="mint_section_data_content"
+          ></input>
+        </div>
+        <div className="mint_section_data">
+          <span className="mint_section_data_title">amount:</span>
+          <input
+            type="text"
+            id="amount_mint"
+            placeholder="Mint的數量"
+            value={amountInput}
+            onChange={(e) => setAmountInput(e.target.value)}
+            className="mint_section_data_content"
+          ></input>
+        </div>
         <button onClick={submitSignHandler} disabled={complete}>
           {submitSignButtonText}
         </button>
-        {/* <div>
-        {" "}
-        <span className="outputs"> Account: {account}</span>{" "}
-      </div> */}
-        {/* <div>
-        <span className="outputs">
-          目前已有的授權: {count} out of {sigNeeded}
-        </span>
-      </div> */}
-        {/* <div>
-        {" "}
-        <span className="outputs"> Digest: {txHash} </span>{" "}
-      </div> */}
       </div>
       <div className="mint_section">
         <p>
