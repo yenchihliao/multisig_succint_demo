@@ -1,7 +1,19 @@
-.mint {
+.mint, .transfer {
   display: flex;
   justify-content: space-evenly;
+  input {
+    width: 400px;
+  }
   &_section {
+    &_data {
+      margin-bottom: 5px;
+      &_title {
+        margin-right: 3px;
+      }
+      &_btn {
+        margin-left: 3px;
+      }
+    }
     width: 100%;
     .info-card {
       display: flex;
