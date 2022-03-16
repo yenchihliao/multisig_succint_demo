@@ -52,7 +52,7 @@ const Mint = ({ show }) => {
   const submitSignHandler = async () => {
     // temp hash2Count, hash2Signs
     let currentCount = 0;
-    let currentSigns = "";
+    let currentSigns = [];
 
     //get signer
     const web3Modal = new Web3Modal();
@@ -99,12 +99,17 @@ const Mint = ({ show }) => {
     }
 
     if (currentCount >= sigNeeded) {
-      // console.log(
-      //   currentSigns +
-      //     padTo32Bytes((await signer.getAddress()).substr(2)) +
-      //     padTo32Bytes("") +
-      //     "01"
-      // );
+      currentSigns.push(
+        (await signer.getAddress()) +
+        padTo32Bytes((await signer.getAddress()).substr(2)) +
+        padTo32Bytes("") +
+        "01"
+      );
+      currentSigns.sort();
+      var signatures = "0x";
+      for(var i = 0;i < sigNeeded;i++){
+        signatures += window.hash2Signs[dataHash][i].substr(42);
+      }
       // execTransaction
       const tx = await contract.execTransaction(
         config.erc1363,
@@ -116,10 +121,7 @@ const Mint = ({ show }) => {
         0,
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
-        currentSigns +
-          padTo32Bytes((await signer.getAddress()).substr(2)) +
-          padTo32Bytes("") +
-          "01"
+        signatures
       );
 
       await tx.wait();
@@ -150,7 +152,7 @@ const Mint = ({ show }) => {
 
       setHash2Signs({
         ...hash2Signs,
-        [dataHash]: (currentSigns += flatSig),
+        [dataHash]: (currentSigns.push((await signer.getAddress()) + flatSig.substr(2))),
       });
 
       // 如果成功才更動資訊
