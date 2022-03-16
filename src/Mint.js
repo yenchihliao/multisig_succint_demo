@@ -66,7 +66,7 @@ const Mint = () => {
 
     if(! (dataHash in window.hash2Count)){
       window.hash2Count[dataHash] = 0;
-      window.hash2Signs[dataHash] = '';
+      window.hash2Signs[dataHash] = [];
     }
     window.hash2Count[dataHash] += 1;
     setTxHash(dataHash);
@@ -74,11 +74,18 @@ const Mint = () => {
 
     // check if enough signs to execute
     if(window.hash2Count[dataHash] >= threshold ){
-      console.log(window.hash2Signs[dataHash] +
+      window.hash2Signs[dataHash].push(
+        (await signer.getAddress()) +
         padTo32Bytes((await signer.getAddress()).substr(2)) +
         padTo32Bytes("") +
         "01"
       );
+      window.hash2Signs[dataHash].sort();
+      var signatures = '0x';
+      for(var i = 0;i < threshold;i++){
+        signatures += window.hash2Signs[dataHash][i].substr(42);
+      }
+      console.log(signatures);
       // execTransaction
       await contract.execTransaction(
         config.erc1363,
@@ -87,11 +94,8 @@ const Mint = () => {
         0, 0, 0, 0,
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
-        window.hash2Signs[dataHash] +
-          padTo32Bytes((await signer.getAddress()).substr(2)) +
-          padTo32Bytes("") +
-          "01"
-      )
+        signatures
+      );
       setSubmitSignButtonText("executed");
     }else{
       // sign
@@ -104,11 +108,11 @@ const Mint = () => {
          flatSig = flatSig.slice(0, 130);
          flatSig += '20';
       }
-      window.hash2Signs[dataHash] += flatSig;
+      window.hash2Signs[dataHash].push((await signer.getAddress()) + flatSig.substr(2));
       console.log(window.hash2Signs[dataHash]);
       const recovered = ethers.utils.verifyMessage(dataHashBytes, flatSig);
       // setSigned(flatSig);
-      console.log(recovered);
+      console.log(recovered == (await signer.getAddress()));
       // let sig = ethers.utils.splitSignature(result);
       // console.log(sig);
       setSubmitSignButtonText('signed');
