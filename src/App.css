@@ -36,3 +36,29 @@
     transform: rotate(360deg);
   }
 }
+
+/* App 基礎 */
+.Multi-Signature {
+  margin: 20px;
+}
+.Multi-Signature .tabs{
+  display: flex;
+  justify-content: space-around;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.Multi-Signature .tabs .tab{
+  margin: 5px 5px 0px 5px;
+  text-align: center;
+  cursor: pointer;
+  width: 100%;
+}
+
+.Multi-Signature .tabs .current{
+  border-bottom: 2px solid #1976d2;
+  color: #1976d2;
+}
+
+.Multi-Signature .mint, .Multi-Signature .transfer{
+  margin: 10px;
+}
