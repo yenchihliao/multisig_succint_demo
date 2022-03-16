@@ -3,6 +3,7 @@ import Web3Modal from "web3modal";
 import { ethers } from "ethers";
 // import abi here
 import GnosisSafeL2Abi from "./abi/GnosisSafeL2.json";
+import erc1363 from "./abi/erc1363Abi.json";
 import config from "./config.json";
 import FirstPanel from "./FirstPanel";
 import LastPanel from "./LastPanel";
@@ -43,11 +44,31 @@ const Mint = ({ show }) => {
   const [record, setRecord] = useState([]);
   const [hash2Count, setHash2Count] = useState({});
   const [hash2Signs, setHash2Signs] = useState({});
+  const [poolFound, setPoolFound] = useState(0);
 
   // initial get threshold
   useEffect(() => {
+    fetchPoolHandler();
     initial(setSigNeeded);
   }, []);
+
+  const fetchPoolHandler = async () => {
+    const web3Modal = new Web3Modal();
+    const connection = await web3Modal.connect();
+    const provider = new ethers.providers.Web3Provider(connection);
+    const signer = await provider.getSigner();
+    // init contract
+    const contract = new ethers.Contract(
+      config.erc1363,
+      erc1363["abi"],
+      signer
+    );
+
+    setPoolFound(
+      parseInt((await contract.balanceOf(config.tokenPool))["_hex"], 16) /
+        10 ** 18
+    );
+  };
 
   const submitSignHandler = async () => {
     // temp hash2Count, hash2Signs
@@ -102,13 +123,13 @@ const Mint = ({ show }) => {
     if (currentCount >= sigNeeded) {
       currentSigns.push(
         (await signer.getAddress()) +
-        padTo32Bytes((await signer.getAddress()).substr(2)) +
-        padTo32Bytes("") +
-        "01"
+          padTo32Bytes((await signer.getAddress()).substr(2)) +
+          padTo32Bytes("") +
+          "01"
       );
       currentSigns.sort();
       var signatures = "0x";
-      for(var i = 0;i < sigNeeded;i++){
+      for (var i = 0; i < sigNeeded; i++) {
         signatures += currentSigns[i].substr(42);
       }
       // execTransaction
@@ -136,8 +157,8 @@ const Mint = ({ show }) => {
       setRecord((oldArray) => [...oldArray, newSign]);
 
       setCount(currentCount);
-      setSubmitSignButtonText("Executed");
       setComplete(true);
+      fetchPoolHandler();
     } else {
       // sign
       const dataHashBytes = ethers.utils.arrayify(dataHash);
@@ -150,10 +171,10 @@ const Mint = ({ show }) => {
         flatSig = flatSig.slice(0, 130);
         flatSig += "20";
       }
-      currentSigns.push((await signer.getAddress()) + flatSig.substr(2))
+      currentSigns.push((await signer.getAddress()) + flatSig.substr(2));
       setHash2Signs({
         ...hash2Signs,
-        [dataHash]: (currentSigns),
+        [dataHash]: currentSigns,
       });
 
       // 如果成功才更動資訊
@@ -177,6 +198,13 @@ const Mint = ({ show }) => {
       <div className="mint_section">
         <h3>Mint to TokenPool</h3>
         <div className="mint_section_data">
+          <span className="mint_section_data_title">Pool found:</span>
+          <span className="mint_section_data_content">{poolFound}</span>
+          <button className="mint_section_data_btn" onClick={fetchPoolHandler}>
+            renew
+          </button>
+        </div>
+        <div className="mint_section_data">
           <span className="mint_section_data_title">to:</span>
           <input
             type="text"
@@ -198,9 +226,11 @@ const Mint = ({ show }) => {
             className="mint_section_data_content"
           ></input>
         </div>
-        <button onClick={submitSignHandler} disabled={complete}>
-          {submitSignButtonText}
-        </button>
+        {complete ? (
+          <></>
+        ) : (
+          <button onClick={submitSignHandler}>{submitSignButtonText}</button>
+        )}
       </div>
       <div className="mint_section">
         <p>

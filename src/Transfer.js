@@ -168,7 +168,6 @@ const Transfer = ({ show }) => {
       setRecord((oldArray) => [...oldArray, newSign]);
 
       setCount(currentCount);
-      setSubmitSignButtonText("Executed");
       setComplete(true);
       fetchPoolHandler();
     } else {
@@ -248,7 +247,11 @@ const Transfer = ({ show }) => {
             className="mint_section_data_content"
           ></input>
         </div>
-        <button onClick={submitSignHandler}>{submitSignButtonText}</button>
+        {complete ? (
+          <></>
+        ) : (
+          <button onClick={submitSignHandler}>{submitSignButtonText}</button>
+        )}
       </div>
       <div className="mint_section">
         <p>

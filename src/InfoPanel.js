@@ -20,7 +20,7 @@ const InfoPanel = ({ data, completed }) => {
             <div className="info-card_msg">
               <div>No. {index + 1}</div>
               <div>簽署地址：{item.address}</div>
-              <div>完成資訊：{item.msg}</div>
+              <div>交易摘要：{item.msg}</div>
             </div>
           </div>
         );
