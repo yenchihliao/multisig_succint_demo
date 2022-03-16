@@ -26,9 +26,9 @@ const initial = async (setSigNeeded) => {
 };
 
 const padTo32Bytes = (str) => {
-  var paddings = "";
-  var num = 64 - str.length;
-  for (var i = 0; i < num; i++) {
+  let paddings = "";
+  let num = 64 - str.length;
+  for (let i = 0; i < num; i++) {
     paddings += "0";
   }
   return paddings + str;
@@ -48,7 +48,7 @@ const Transfer = ({ show }) => {
   const [complete, setComplete] = useState(false);
   const [record, setRecord] = useState([]);
   const [hash2Count, setHash2Count] = useState({});
-  const [hash2Signs, setHash2Signs] = useState({});
+  const [hash2Signs, setHash2Signs] = useState([]);
 
   // get initial Pool fund
   useEffect(() => {
@@ -77,7 +77,7 @@ const Transfer = ({ show }) => {
   const submitSignHandler = async () => {
     // temp hash2Count, hash2Signs
     let currentCount = 0;
-    let currentSigns = "";
+    let currentSigns = [];
 
     //get signer
     const web3Modal = new Web3Modal();
@@ -97,6 +97,7 @@ const Transfer = ({ show }) => {
     const amount = padTo32Bytes(
       (parseInt(amountInput) * 10 ** 18).toString(16)
     );
+
     const nonce = await contract.nonce();
     const data = "0xbeabacc8" + token + to + amount;
 
@@ -116,7 +117,7 @@ const Transfer = ({ show }) => {
 
     if (dataHash in hash2Count) {
       currentCount = hash2Count[dataHash] + 1;
-      currentSigns = hash2Signs[dataHash];
+      currentSigns = [...hash2Signs];
     } else {
       currentCount += 1;
     }
@@ -129,6 +130,19 @@ const Transfer = ({ show }) => {
       //     padTo32Bytes("") +
       //     "01"
       // );
+
+      currentSigns.push(
+        (await signer.getAddress()).toLowerCase() +
+          padTo32Bytes((await signer.getAddress()).toLowerCase().substr(2)) +
+          padTo32Bytes("") +
+          "01"
+      );
+      currentSigns.sort();
+      let signatures = "0x";
+      for (let i = 0; i < sigNeeded; i++) {
+        signatures += currentSigns[i].substr(42);
+      }
+
       // execTransaction
       const tx = await contract.execTransaction(
         config.tokenPool,
@@ -140,10 +154,7 @@ const Transfer = ({ show }) => {
         0,
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
-        currentSigns +
-          padTo32Bytes((await signer.getAddress()).substr(2)) +
-          padTo32Bytes("") +
-          "01"
+        signatures
       );
 
       await tx.wait();
@@ -159,10 +170,12 @@ const Transfer = ({ show }) => {
       setCount(currentCount);
       setSubmitSignButtonText("Executed");
       setComplete(true);
+      fetchPoolHandler();
     } else {
       // sign
       const dataHashBytes = ethers.utils.arrayify(dataHash);
-      var flatSig = await signer.signMessage(dataHashBytes);
+      let flatSig = await signer.signMessage(dataHashBytes);
+
       if (flatSig[131] === "b") {
         flatSig = flatSig.slice(0, 130);
         flatSig += "1f";
@@ -171,10 +184,9 @@ const Transfer = ({ show }) => {
         flatSig += "20";
       }
 
-      setHash2Signs({
-        ...hash2Signs,
-        [dataHash]: (currentSigns += flatSig),
-      });
+      currentSigns.push(
+        (await signer.getAddress()).toLowerCase() + flatSig.substr(2)
+      );
 
       // 如果成功才更動資訊
       if (flatSig) {
@@ -182,6 +194,8 @@ const Transfer = ({ show }) => {
           ...old,
           [dataHash]: currentCount,
         }));
+
+        setHash2Signs([...currentSigns]);
 
         setCount(currentCount);
         let newSign = { address: await signer.getAddress(), msg: dataHash };
